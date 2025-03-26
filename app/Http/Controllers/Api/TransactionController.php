@@ -88,23 +88,46 @@ class TransactionController extends Controller
      */
     public function update(TransactionRequest $request, string $id)
     {
-        $transaction = Transaction::find($id);
+        try {
+            DB::beginTransaction();
 
-        if(empty($transaction)) {
+            // Cari transaksi berdasarkan ID
+            $transaction = Transaction::find($id);
+
+            if(empty($transaction)) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'Data transaksi tidak ditemukan',
+                    'data' => null
+                ], 404);
+            }
+
+            // Ambil data produk yang sesuai dengan request
+            $product = Product::findOrFail($request->product_id);
+
+            // Kurangi stok dan tambahkan jumlah barang yang terjual
+            $product->decrement('stock', $request->quantity - $transaction->quantity);
+            $product->increment('sold', $request->quantity - $transaction->quantity);
+
+            // Update transaksi
+            $transaction->update($request->validated());
+
+            DB::commit();
+
+            return response()->json([
+                'error' => false,
+                'message' => 'Data transaksi berhasil diubah',
+                'data' => $transaction
+            ]);
+        } catch(\Exception $e) {
+            Db::rollBack();
+
             return response()->json([
                 'error' => true,
-                'message' => 'Data transaksi tidak ditemukan',
-                'data' => null
-            ], 404);
+                'message' => 'Terjadi kesalahan',
+                'details' => $e->getMessage(),
+            ], 500);
         }
-
-        $transaction->update($request->all());
-
-        return response()->json([
-            'error' => false,
-            'message' => 'Data transaksi berhasil diubah',
-            'data' => $transaction
-        ]);
     }
 
     /**
