@@ -11,7 +11,7 @@ class Transaction extends Model
     use HasFactory, SoftDeletes;
     protected $table = 'transactions';
     protected $fillable = [
-        'quantity_sold',
+        'quantity',
         'product_id',
         'transaction_date',
     ];

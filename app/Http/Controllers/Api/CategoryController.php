@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class CategoryController extends Controller
 {
@@ -16,17 +17,8 @@ class CategoryController extends Controller
     {
         $categories = Category::all();
 
-        if($categories->isEmpty()) {
-            return response()->json([
-                'error' => true,
-                'message' => 'Jenis barang tidak ditemukan',
-                'data' => null
-            ], 404);
-        }
-
         return response()->json([
             'error' => false,
-            'message' => 'Data berhasil diambil',
             'data' => $categories
         ]);
     }
@@ -36,21 +28,13 @@ class CategoryController extends Controller
      */
     public function store(CategoryRequest $request)
     {
-        try {
-            $category = Category::create($request->validated());
+        $category = Category::create($request->validated());
 
-            return response()->json([
-                'error' => false,
-                'message' => 'Jenis barang berhasil dibuat',
-                'data' => $category
-            ], 201);
-       } catch(\Exception $e) {
-            return response()->json([
-                'error' => true,
-                'message' => 'Terjadi kesalahan',
-                'details' => $e->getMessage()
-            ], 500);
-       }
+        return response()->json([
+            'error' => false,
+            'message' => 'Data jenis barang berhasil disimpan',
+            'data' => $category
+        ], 201);
     }
 
     /**
@@ -58,15 +42,45 @@ class CategoryController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $category = Category::find($id);
+
+        if(empty($category)) {
+            return response()->json([
+                'error' => true,
+                'message' => 'Data jenis barang tidak ditemukan',
+                'data' => null
+            ], 404);
+        }
+
+        return response()->json([
+            'error' => false,
+            'message' => 'Data jenis barang berhasil diambil',
+            'data' => $category
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(CategoryRequest $request, string $id)
     {
-        //
+        $category = Category::find($id);
+
+        if(empty($category)) {
+            return response()->json([
+                'error' => true,
+                'message' => 'Data jenis barang tidak ditemukan',
+                'data' => null
+            ], 404);
+        }
+
+        $category->update($request->validated());
+
+        return response()->json([
+            'error' => false,
+            'message' => 'Data jenis barang berhasil diubah',
+            'data' => $category
+        ]);
     }
 
     /**
@@ -74,6 +88,21 @@ class CategoryController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $category = Category::find($id);
+
+        if(empty($category)) {
+            return response()->json([
+                'error' => true,
+                'message' => 'Data jenis barang tidak ditemukan',
+                'data' => null
+            ], 404);
+        }
+
+        $category->delete();
+
+        return response()->json([
+            'error' => false,
+            'message' => 'Data jenis barang berhasil dihapus',
+        ]);
     }
 }
