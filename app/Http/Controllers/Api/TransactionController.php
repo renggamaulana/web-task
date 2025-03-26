@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TransactionRequest;
+use App\Models\Product;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
@@ -27,13 +29,36 @@ class TransactionController extends Controller
      */
     public function store(TransactionRequest $request)
     {
-        $transaction = Transaction::create($request->validated());
+        try {
+            DB::beginTransaction();
 
-        return response()->json([
-            'error' => false,
-            'message' => 'Data transaksi berhasil disimpan',
-            'data' => $transaction
-        ]);
+            // Ambil data produk yang sesuai dengan request
+            $product = Product::findOrFail($request->product_id);
+
+            //  Kurangi stok dan tambahkan jumlah barang yang terjual
+            $product->decrement('stock', $request->quantity);
+            $product->increment('sold', $request->quantity);
+
+            // Simpan transaksi
+            $transaction = Transaction::create($request->validated());
+
+            DB::commit();
+
+            return response()->json([
+                'error' => false,
+                'message' => 'Data transaksi berhasil disimpan',
+                'data' => $transaction
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'error' => true,
+                'message' => 'Terjadi kesalahan',
+                'details' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 
 class TransactionRequest extends FormRequest
@@ -23,8 +24,18 @@ class TransactionRequest extends FormRequest
     {
         return [
             'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer',
-            'transaction_date' => 'required|date'
+            'transaction_date' => 'required|date',
+            'quantity' => [
+                'required',
+                'integer',
+                'min:1',
+                function ($attribute, $value, $fail) {
+                    $product = Product::find($this->input('product_id'));
+                    if ($product && $product->stock < $value) {
+                        $fail('Jumlah barang melebihi stok yang tersedia.');
+                    }
+                }
+            ]
         ];
     }
 }
