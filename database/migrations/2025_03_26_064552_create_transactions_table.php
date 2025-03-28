@@ -17,7 +17,6 @@ return new class extends Migration
             $table->date('transaction_date'); // jika tipenya date saja maka waktu tidak akan disertakan dalam pencarian rentang waktu
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->timestamps();
-            $table->SoftDeletes();
         });
     }
 

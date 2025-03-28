@@ -20,7 +20,6 @@ return new class extends Migration
             $table->integer('new_stock'); // Stok setelah transaksi
             $table->integer('previous_sold'); // Jumlah terjual sebelumnya
             $table->integer('new_sold'); // Jumlah terjual setelah transaksi
-            $table->softDeletes();
             $table->timestamps();
         });
     }
