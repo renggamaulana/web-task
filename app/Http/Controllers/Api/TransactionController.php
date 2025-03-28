@@ -15,24 +15,26 @@ class TransactionController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $transactionLogs = TransactionLog::with(['transaction', 'product'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($log) {
-                return [
-                    'transaction_id' => $log->transaction_id,
-                    'product_name' => $log->product->name,
-                    'quantity' => $log->quantity,
-                    'previous_stock' => $log->previous_stock,
-                    'new_stock' => $log->new_stock,
-                    'previous_sold' => $log->previous_sold,
-                    'new_sold' => $log->new_sold,
-                    'category_name' => $log->product->category->name,
-                    'transaction_date' => $log->transaction->transaction_date,
-                ];
-            });
+        $search = $request->input('search');
+        $sortField = $request->input('sort', 'transaction_date'); // Default sorting by transaction_date
+        $sortOrder = $request->input('order', 'desc'); // Default order asc
+
+        $transactionLogs = TransactionLog::with(['transaction', 'product.category'])
+            ->when($search, function ($query, $search) {
+                return $query->whereHas('product', function ($q) use ($search) {
+                    $q->where('name', 'like', "%$search%");
+                });
+            })
+            ->join('products', 'transaction_logs.product_id', '=', 'products.id')
+            ->join('transactions', 'transaction_logs.transaction_id', '=', 'transactions.id')
+            ->select('transaction_logs.*', 'products.name as product_name', 'transactions.transaction_date')
+            ->orderBy(
+                $sortField === 'name' ? 'product_name' : 'transaction_date',
+                $sortOrder
+            )
+            ->get();
 
         return response()->json([
             'error' => false,
@@ -40,6 +42,7 @@ class TransactionController extends Controller
             'data' => $transactionLogs
         ]);
     }
+
 
     /**
      * Store a newly created resource in storage.
