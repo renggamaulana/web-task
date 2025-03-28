@@ -24,4 +24,10 @@ class Transaction extends Model
     public function product() {
         return $this->belongsTo(Product::class);
     }
+    
+    // Relasi ke TransactionLog (Satu transaksi bisa memiliki banyak log)
+    public function transactionLogs()
+    {
+        return $this->hasMany(TransactionLog::class);
+    }
 }

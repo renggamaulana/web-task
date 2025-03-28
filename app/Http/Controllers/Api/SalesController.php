@@ -15,7 +15,7 @@ class SalesController extends Controller
      *
      * @return  Model Transaction
      */
-    public function compareSales(Request $request)
+    public function salesSummary(Request $request)
     {
         $query = Transaction::selectRaw('categories.name as category, SUM(transactions.quantity) as total_sold')
             ->join('products', 'transactions.product_id', '=', 'products.id')
@@ -23,16 +23,17 @@ class SalesController extends Controller
             ->groupBy('categories.name')
             ->orderBy('total_sold', 'desc');
 
-        $startDate = $request->start_date;
-        $endDate = $request->end_date;
-
-        // Jika ada tanggal, tambahkan filter berdasarkan rentang waktu
+        // Cek apakah filter tanggal diberikan
         if ($request->has('start_date') && $request->has('end_date')) {
+            $startDate = $request->start_date;
+            $endDate = $request->end_date;
             $query->whereBetween('transactions.transaction_date', [$startDate, $endDate]);
         }
 
+        // Ambil hasil query
         $result = $query->get();
 
+        // Hitung total penjualan dari semua kategori
         $totalSales = $result->sum('total_sold');
 
         return response()->json([
@@ -42,11 +43,12 @@ class SalesController extends Controller
                 'total_sales' => $totalSales,
                 'total_categories' => count($result),
                 'date_range' => [
-                    'start_date' => $startDate,
-                    'end_date' => $endDate,
+                    'start_date' => $request->start_date ?? null,
+                    'end_date' => $request->end_date ?? null,
                 ],
                 'categories' => $result
             ],
         ]);
+
     }
 }

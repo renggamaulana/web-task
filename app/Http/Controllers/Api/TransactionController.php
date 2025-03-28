@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\TransactionRequest;
 use App\Models\Product;
 use App\Models\Transaction;
+use App\Models\TransactionLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -16,11 +17,27 @@ class TransactionController extends Controller
      */
     public function index()
     {
-        $transactions = Transaction::all();
+        $transactionLogs = TransactionLog::with(['transaction', 'product'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'transaction_id' => $log->transaction_id,
+                    'product_name' => $log->product->name,
+                    'quantity' => $log->quantity,
+                    'previous_stock' => $log->previous_stock,
+                    'new_stock' => $log->new_stock,
+                    'previous_sold' => $log->previous_sold,
+                    'new_sold' => $log->new_sold,
+                    'category_name' => $log->product->category->name,
+                    'transaction_date' => $log->transaction->transaction_date,
+                ];
+            });
 
         return response()->json([
             'error' => false,
-            'data' => $transactions
+            'message' => 'Transaction logs retrieved successfully',
+            'data' => $transactionLogs
         ]);
     }
 
@@ -32,15 +49,40 @@ class TransactionController extends Controller
         try {
             DB::beginTransaction();
 
-            // Ambil data produk yang sesuai dengan request
+            // Ambil data produk berdasarkan product_id
             $product = Product::findOrFail($request->product_id);
 
-            //  Kurangi stok dan tambahkan jumlah barang yang terjual
+            // Pastikan stok cukup sebelum transaksi dilakukan
+            if ($product->stock < $request->quantity) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'Stok tidak mencukupi'
+                ], 400);
+            }
+
+            // Simpan nilai sebelum perubahan
+            $previousStock = $product->stock;
+            $previousSold = $product->sold;
+
+            // Kurangi stok dan tambahkan jumlah barang yang terjual secara akumulatif
             $product->decrement('stock', $request->quantity);
-            $product->increment('sold', $request->quantity);
+            $product->update([
+                'sold' => $previousSold + $request->quantity,
+            ]);
 
             // Simpan transaksi
             $transaction = Transaction::create($request->validated());
+
+            // Simpan ke dalam Transaction Log
+            TransactionLog::create([
+                'transaction_id' => $transaction->id,
+                'product_id' => $request->product_id,
+                'quantity' => $request->quantity,
+                'previous_stock' => $previousStock,
+                'new_stock' => $product->stock,
+                'previous_sold' => $previousSold,
+                'new_sold' => $product->sold,
+            ]);
 
             DB::commit();
 
@@ -81,53 +123,6 @@ class TransactionController extends Controller
             'message' => 'Data transaksi berhasil diambil',
             'data' => $transaction
         ]);
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(TransactionRequest $request, string $id)
-    {
-        try {
-            DB::beginTransaction();
-
-            // Cari transaksi berdasarkan ID
-            $transaction = Transaction::find($id);
-
-            if(empty($transaction)) {
-                return response()->json([
-                    'error' => true,
-                    'message' => 'Data transaksi tidak ditemukan',
-                    'data' => null
-                ], 404);
-            }
-
-            // Ambil data produk yang sesuai dengan request
-            $product = Product::findOrFail($request->product_id);
-
-            // Kurangi stok dan tambahkan jumlah barang yang terjual
-            $product->decrement('stock', $request->quantity - $transaction->quantity);
-            $product->increment('sold', $request->quantity - $transaction->quantity);
-
-            // Update transaksi
-            $transaction->update($request->validated());
-
-            DB::commit();
-
-            return response()->json([
-                'error' => false,
-                'message' => 'Data transaksi berhasil diubah',
-                'data' => $transaction
-            ]);
-        } catch(\Exception $e) {
-            Db::rollBack();
-
-            return response()->json([
-                'error' => true,
-                'message' => 'Terjadi kesalahan',
-                'details' => $e->getMessage(),
-            ], 500);
-        }
     }
 
     /**

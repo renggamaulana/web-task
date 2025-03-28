@@ -4,8 +4,10 @@ namespace Database\Seeders;
 
 use App\Models\Product;
 use App\Models\Transaction;
+use App\Models\TransactionLog;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class TransactionSeeder extends Seeder
 {
@@ -25,13 +27,41 @@ class TransactionSeeder extends Seeder
         ];
 
         foreach ($transactions as $transaction) {
-            $product = Product::find($transaction['product_id']);
+            DB::transaction(function () use ($transaction) {
+                $product = Product::find($transaction['product_id']);
 
-            if ($product && $product->stock >= $transaction['quantity']) {
-                Transaction::create($transaction);
-                $product->decrement('stock', $transaction['quantity']); // Mengurangi stok
-                $product->increment('sold', $transaction['quantity']); // Menambah jumlah terjual
-            }
+                if ($product && $product->stock >= $transaction['quantity']) {
+                    $previousStock = $product->stock;
+                    $newStock = $previousStock - $transaction['quantity'];
+
+                    $previousSold = $product->sold;
+                    $newSold = $previousSold + $transaction['quantity'];
+
+                    // Buat transaksi
+                    $newTransaction = Transaction::create([
+                        'product_id' => $transaction['product_id'],
+                        'quantity' => $transaction['quantity'],
+                        'transaction_date' => $transaction['transaction_date'],
+                    ]);
+
+                    // Update stok & jumlah terjual
+                    $product->update([
+                        'stock' => $newStock,
+                        'sold' => $newSold,
+                    ]);
+
+                    // Simpan ke transaction_log
+                    TransactionLog::create([
+                        'transaction_id' => $newTransaction->id,
+                        'product_id' => $transaction['product_id'],
+                        'quantity' => $transaction['quantity'],
+                        'previous_stock' => $previousStock,
+                        'new_stock' => $newStock,
+                        'previous_sold' => $previousSold,
+                        'new_sold' => $newSold,
+                    ]);
+                }
+            });
         }
     }
 }

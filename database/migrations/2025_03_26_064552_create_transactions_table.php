@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->integer('quantity');
-            $table->date('transaction_date');
+            $table->date('transaction_date'); // jika tipenya date saja maka waktu tidak akan disertakan dalam pencarian rentang waktu
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->timestamps();
             $table->SoftDeletes();
