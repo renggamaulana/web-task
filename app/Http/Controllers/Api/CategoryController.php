@@ -97,7 +97,7 @@ class CategoryController extends Controller
                 'data' => null
             ], 404);
         }
-
+        $category->products()->forceDelete();
         $category->delete();
 
         return response()->json([

@@ -25,4 +25,14 @@ class CategoryRequest extends FormRequest
             'name' => 'required|string|unique:categories|min:3',
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Nama kategori wajib diisi.',
+            'name.string' => 'Nama kategori harus berupa teks.',
+            'name.unique' => 'Nama kategori sudah digunakan, silakan pilih yang lain.',
+            'name.min' => 'Nama kategori minimal harus 3 karakter.',
+        ];
+    }
 }

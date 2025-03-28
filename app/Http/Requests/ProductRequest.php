@@ -27,4 +27,21 @@ class ProductRequest extends FormRequest
             'category_id' => 'required|exists:categories,id'
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Nama kategori wajib diisi.',
+            'name.string' => 'Nama kategori harus berupa teks.',
+            'name.unique' => 'Nama kategori sudah digunakan, silakan pilih yang lain.',
+            'name.min' => 'Nama kategori minimal harus 3 karakter.',
+
+            'stock.required' => 'Stok produk wajib diisi.',
+            'stock.integer' => 'Stok produk harus berupa angka.',
+            'stock.min' => 'Stok tidak boleh kurang dari 0.',
+
+            'category_id.required' => 'Kategori wajib dipilih.',
+            'category_id.exists' => 'Kategori yang dipilih tidak valid.',
+        ];
+    }
 }

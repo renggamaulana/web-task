@@ -38,4 +38,19 @@ class TransactionRequest extends FormRequest
             ]
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'product_id.required' => 'Produk wajib dipilih.',
+            'product_id.exists' => 'Produk yang dipilih tidak valid.',
+
+            'transaction_date.required' => 'Tanggal transaksi wajib diisi.',
+            'transaction_date.date' => 'Tanggal transaksi harus dalam format yang benar.',
+
+            'quantity.required' => 'Jumlah barang wajib diisi.',
+            'quantity.integer' => 'Jumlah barang harus berupa angka.',
+            'quantity.min' => 'Jumlah barang minimal adalah 1.',
+        ];
+    }
 }

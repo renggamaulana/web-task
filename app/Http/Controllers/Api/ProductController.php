@@ -98,6 +98,7 @@ class ProductController extends Controller
             ], 404);
         }
 
+        $product->transactionLogs()->delete();
         $product->delete();
 
         return response()->json([

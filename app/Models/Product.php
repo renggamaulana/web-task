@@ -31,7 +31,7 @@ class Product extends Model
      *
      * @return Model Transaction
      */
-    public function transaction() {
+    public function transactions() {
         return $this->hasMany(Transaction::class);
     }
 
